@@ -50,9 +50,11 @@ def run_streamlit_app():
                 )
 
                 # Retry mechanism to ensure the file exists
-                for _ in range(5):  # Retry up to 5 times
+                retry_attempts = 10  # Increase the retry count
+                for attempt in range(retry_attempts):
                     if os.path.exists(final_output_path):
                         break
+                    logging.info(f"Retry {attempt + 1}/{retry_attempts}: Waiting for file to be created...")
                     time.sleep(1)  # Wait 1 second before checking again
                 else:
                     raise FileNotFoundError(f"File {final_output_path} could not be created.")
