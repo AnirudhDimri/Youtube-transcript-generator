@@ -1,5 +1,6 @@
 import os
 import logging
+import tempfile
 import streamlit as st
 import nltk
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -37,41 +38,38 @@ def run_streamlit_app():
             st.error("Please enter a valid YouTube URL.")
         else:
             try:
-                # Use Streamlit's temporary directory for saving files
-                temp_dir = st.session_state.get("temp_dir", None)
-                if temp_dir is None:
-                    temp_dir = st.session_state["temp_dir"] = os.getcwd()  # Default to current working directory
+                # Create a secure temporary directory
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    # Parse video details
+                    video_id = parse_youtube_url(video_url)
+                    video_info = getVideoInfo(video_id)
+                    final_filename = filename or clean_for_filename(video_info["title"]) or clean_for_filename(video_id)
+                    final_output_path = os.path.join(temp_dir, f"{final_filename}.md")
 
-                # Parse video details
-                video_id = parse_youtube_url(video_url)
-                video_info = getVideoInfo(video_id)
-                final_filename = filename or clean_for_filename(video_info["title"]) or clean_for_filename(video_id)
-                final_output_path = os.path.join(temp_dir, f"{final_filename}.md")
-
-                # Generate transcript
-                st.info("Generating transcript... Please wait.")
-                process_and_save_transcript(
-                    video_id=video_id,
-                    video_info=video_info,
-                    language=language,
-                    generate_punctuated=generate_punctuated,
-                    output_dir=temp_dir,
-                    filename=final_filename,
-                    verbose=False,
-                    punctuation_model=""
-                )
-
-                # Display and download transcript
-                with open(final_output_path, "r", encoding="utf-8") as file:
-                    transcript_content = file.read()
-                    st.success("Transcript generated successfully!")
-                    st.text_area("Generated Transcript", transcript_content, height=300)
-                    st.download_button(
-                        label="Download Transcript",
-                        data=transcript_content,
-                        file_name=f"{final_filename}.md",
-                        mime="text/markdown"
+                    # Generate transcript
+                    st.info("Generating transcript... Please wait.")
+                    process_and_save_transcript(
+                        video_id=video_id,
+                        video_info=video_info,
+                        language=language,
+                        generate_punctuated=generate_punctuated,
+                        output_dir=temp_dir,
+                        filename=final_filename,
+                        verbose=False,
+                        punctuation_model=""
                     )
+
+                    # Display and download transcript
+                    with open(final_output_path, "r", encoding="utf-8") as file:
+                        transcript_content = file.read()
+                        st.success("Transcript generated successfully!")
+                        st.text_area("Generated Transcript", transcript_content, height=300)
+                        st.download_button(
+                            label="Download Transcript",
+                            data=transcript_content,
+                            file_name=f"{final_filename}.md",
+                            mime="text/markdown"
+                        )
             except Exception as e:
                 st.error(f"An error occurred: {e}")
 
