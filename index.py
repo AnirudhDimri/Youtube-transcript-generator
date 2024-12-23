@@ -8,6 +8,7 @@ import subprocess
 import platform
 
 import nltk
+nltk.download('punkt')
 import googleapiclient.discovery
 import googleapiclient.errors
 from deepmultilingualpunctuation import PunctuationModel
