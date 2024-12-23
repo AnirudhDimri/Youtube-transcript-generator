@@ -13,6 +13,7 @@ from index import (  # Import functions from your existing index.py
     remove_period_after_hashes,
     add_punctuation,
 )
+import time  # Added for file existence check
 
 # Ensure NLTK punkt tokenizer is available
 nltk.download('punkt')
@@ -58,6 +59,17 @@ def run_streamlit_app():
                         verbose=False,
                         punctuation_model=""
                     )
+
+                    # Wait for the file to be created
+                    retries = 5
+                    while not os.path.exists(final_output_path) and retries > 0:
+                        time.sleep(0.5)  # Wait for 500ms
+                        retries -= 1
+
+                    # Check if the file exists
+                    if not os.path.exists(final_output_path):
+                        st.error("Error: Transcript file could not be created.")
+                        return
 
                     # Display and download transcript
                     with open(final_output_path, "r", encoding="utf-8") as file:
