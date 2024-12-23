@@ -6,6 +6,8 @@ import math
 import warnings
 import subprocess
 import platform
+import tempfile
+import time
 
 import nltk
 nltk.download('punkt')
@@ -43,7 +45,7 @@ def remove_tags(text):
 
 def remove_period_after_hashes(text):
     # Remove . after # or ##, considering newline characters
-    return re.sub(r'(#\.|##\.)', lambda match: match.group(1)[:-1], text)
+    return re.sub(r'(#\.||##\.)', lambda match: match.group(1)[:-1], text)
 
 def remove_escape_sequences(text):
     # Remove escape sequences like \n, \r\n, \t, \b, \r
@@ -110,25 +112,21 @@ def process_and_save_transcript(video_id, language, generate_punctuated, output_
 
         double_linesep = os.linesep + os.linesep
         capitalized_transcript = double_linesep.join(capitalized_sentences)
-        output_path = os.path.join(output_dir, f'{filename}.md')
 
-        logging.info(f'Saving transcript to {output_path}...')
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(capitalized_transcript)
+        # Ensure file creation
+        temp_file_path = os.path.join(output_dir, f"{filename}.md")
+        with open(temp_file_path, "w", encoding="utf-8") as temp_file:
+            temp_file.write(capitalized_transcript)
 
-        # Confirm file creation
-        if os.path.exists(output_path):
-            logging.info(f'Transcript successfully saved to "{output_path}"')
+        if os.path.exists(temp_file_path):
+            logging.info(f'Transcript successfully saved to "{temp_file_path}"')
+            return temp_file_path
         else:
-            raise FileNotFoundError(f"File {output_path} could not be created.")
-
-        if generate_punctuated:
-            logging.info(f'Punctuated transcript saved to "{output_path}"')
-        else:
-            logging.info(f'Raw transcript saved to "{output_path}"')
+            raise FileNotFoundError(f"File {temp_file_path} could not be created.")
 
     except Exception as e:
         logging.error(f'Error: {e}')
+        raise
 
 def main():
     parser = argparse.ArgumentParser(
@@ -138,8 +136,8 @@ def main():
                         help='Language for the transcript (default: en)')
     parser.add_argument('-p', '--punctuated', action='store_true',
                         help='Generate punctuated transcript (default: False)')
-    parser.add_argument('-o', '--output_dir', type=str, default='.',
-                        help='Output directory for saving the transcript (default: .)')
+    parser.add_argument('-o', '--output_dir', type=str, default=tempfile.gettempdir(),
+                        help='Output directory for saving the transcript (default: system temp directory)')
     parser.add_argument('-f', '--filename', type=str, default='',
                         help='Filename for saving the transcript (default: Video Id)')
     parser.add_argument('-m', '--punctuation_model', type=str, default='',
@@ -172,10 +170,6 @@ def main():
 
     process_and_save_transcript(video_id, args.language, args.punctuated,
                                 args.output_dir, filename, args.verbose, args.punctuation_model)
-
-    if args.auto_open:
-        output_path = os.path.join(args.output_dir, f'{filename}.md')
-        open_file(output_path)
 
 if __name__ == "__main__":
     main()
