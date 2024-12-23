@@ -29,7 +29,6 @@ def run_streamlit_app():
     video_url = st.text_input("YouTube Video URL", placeholder="Enter a valid YouTube URL")
     language = st.selectbox("Select Language", ["en", "es", "fr", "de"], index=0)
     generate_punctuated = st.checkbox("Generate Punctuated Transcript", value=True)
-    output_dir = st.text_input("Output Directory", value=".", help="Directory to save the transcript file")
     filename = st.text_input("Custom Filename (Optional)", placeholder="Leave blank for default naming")
 
     # Button to generate transcript
@@ -38,11 +37,16 @@ def run_streamlit_app():
             st.error("Please enter a valid YouTube URL.")
         else:
             try:
+                # Use Streamlit's temporary directory for saving files
+                temp_dir = st.session_state.get("temp_dir", None)
+                if temp_dir is None:
+                    temp_dir = st.session_state["temp_dir"] = os.getcwd()  # Default to current working directory
+
                 # Parse video details
                 video_id = parse_youtube_url(video_url)
                 video_info = getVideoInfo(video_id)
                 final_filename = filename or clean_for_filename(video_info["title"]) or clean_for_filename(video_id)
-                final_output_path = os.path.join(output_dir, f"{final_filename}.md")
+                final_output_path = os.path.join(temp_dir, f"{final_filename}.md")
 
                 # Generate transcript
                 st.info("Generating transcript... Please wait.")
@@ -51,7 +55,7 @@ def run_streamlit_app():
                     video_info=video_info,
                     language=language,
                     generate_punctuated=generate_punctuated,
-                    output_dir=output_dir,
+                    output_dir=temp_dir,
                     filename=final_filename,
                     verbose=False,
                     punctuation_model=""
@@ -74,3 +78,4 @@ def run_streamlit_app():
 
 if __name__ == "__main__":
     run_streamlit_app()
+
