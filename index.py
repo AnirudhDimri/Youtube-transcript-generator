@@ -11,12 +11,9 @@ import time
 
 import nltk
 nltk.download('punkt')
-from deepmultilingualpunctuation import PunctuationModel
 from youtube_transcript_api import YouTubeTranscriptApi
 
-logging.basicConfig(level=logging.INFO, force=True)
-# stop any warnings
-warnings.filterwarnings("ignore")
+
 
 def open_file(filename):
     # Open the file using the default application
@@ -56,14 +53,6 @@ def remove_double_greater_than(text):
     cleaned_text = re.sub(r'>>', '', text)
     return cleaned_text
 
-def add_punctuation(text, punctuation_model):
-    if punctuation_model != "":
-        model = PunctuationModel(model=punctuation_model)
-    else:
-        model = PunctuationModel()
-
-    punctuated_text = model.restore_punctuation(text)
-    return punctuated_text
 
 def capitalize_sentences(sentences):
     # Capitalize the first letter of each sentence in a batch
@@ -78,7 +67,9 @@ def parse_youtube_url(url):
         raise ValueError('Invalid YouTube URL')
 
 def get_transcript(video_id, language, verbose=True):
-    transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=[language])
+    ytt_api = YouTubeTranscriptApi() 
+    fetched = ytt_api.fetch(video_id, languages=[language])
+    transcript_list = fetched.to_raw_data()
     transcript = ''
     for i, line in enumerate(transcript_list):
         # Floor and convert to integer
@@ -93,19 +84,12 @@ def get_transcript(video_id, language, verbose=True):
 
     return transcript
 
-def process_and_save_transcript(video_id, language, generate_punctuated, output_dir, filename, verbose, punctuation_model):
+def process_and_save_transcript(video_id, language, output_dir, filename, verbose):
     try:
         logging.info('Getting transcript...')
         raw_transcript = get_transcript(video_id, language, verbose)
 
-        if generate_punctuated:
-            logging.info('Generating punctuated transcript...')
-            with_punctuation = add_punctuation(raw_transcript, punctuation_model)
-            with_punctuation = remove_period_after_hashes(with_punctuation)
-            logging.info('Capitalizing sentences...')
-            sentences = nltk.sent_tokenize(with_punctuation)
-        else:
-            sentences = nltk.sent_tokenize(raw_transcript)
+        sentences = nltk.sent_tokenize(raw_transcript)
 
         # Capitalize sentences without batching
         capitalized_sentences = capitalize_sentences(sentences)
