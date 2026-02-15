@@ -83,7 +83,8 @@ def get_transcript(video_id, language, verbose=True):
         raise ValueError("Transcripts are disabled for this video.")
     except Exception as e:
         logging.exception("Transcript failure:")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise RuntimeError(str(e))
+
 
 
     transcript_list = fetched.to_raw_data()
