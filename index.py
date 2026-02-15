@@ -10,8 +10,14 @@ import tempfile
 import time
 
 import nltk
-nltk.download('punkt')
+
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+    
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import NoTranscriptFound, TranscriptsDisabled
 
 
 
@@ -67,19 +73,29 @@ def parse_youtube_url(url):
         raise ValueError('Invalid YouTube URL')
 
 def get_transcript(video_id, language, verbose=True):
-    ytt_api = YouTubeTranscriptApi() 
-    fetched = ytt_api.fetch(video_id, languages=[language])
+    ytt_api = YouTubeTranscriptApi()
+
+    try:
+        fetched = ytt_api.fetch(video_id, languages=[language])
+    except NoTranscriptFound:
+        raise ValueError(f"Transcript not available in language '{language}'.")
+    except TranscriptsDisabled:
+        raise ValueError("Transcripts are disabled for this video.")
+    except Exception:
+        raise ValueError("Unable to retrieve transcript for this video.")
+
     transcript_list = fetched.to_raw_data()
     transcript = ''
+
     for i, line in enumerate(transcript_list):
-        # Floor and convert to integer
         line['text'] = remove_tags(line['text'])
         line['text'] = remove_escape_sequences(line['text'])
         line['text'] = remove_double_greater_than(line['text'])
+
         if line['text']:
             transcript += line['text'].strip() + ' '
-        # Log progress information
-        if verbose and i % 100 == 0:  # Adjust the log frequency as needed
+
+        if verbose and i % 100 == 0:
             logging.info(f"Processed {i} lines out of {len(transcript_list)}")
 
     return transcript
